@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# Copyright (c) 2015 Abel Abraham Camarillo Ojeda <acamari@verlet.org>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# executes program arguments up to a $max times until a execution suceeds
+# - returns 0 status; it sleeps before all but the first execution a
+# for a number of seconds obtained using an exponentially growing algorithm.
+# it hides stderr output for all but the last execution
+
+err()
+{
+	echo "$0: " "$@" 2>&1
+	exit 1
+}
+
+while getopts 'c:v' _opt; do
+	case $_opt in
+		# count, max number of executions
+		c*) cflag="$OPTARG";;
+		# verbose: show errors on all executions
+		v*) vflag=1;;
+		*) err error in arguments;;
+	esac
+done
+shift $((OPTIND - 1))
+
+i=0
+max=${cflag:-3}
+while [ "$i" -lt "$max" ]; do
+	sleep=$((i ? (1 << i) + (RANDOM % (1 << i + 1)) : 0))
+	sleep $sleep
+	if [ "x$i" = "x$((max - 1))" ]; then
+		"$@"; exit $?
+	elif [ "x$vflag" = x ]; then
+		"$@" 2>&1 && break
+	else
+		"$@" && break
+	fi
+	i=$((i+1))
+done 
