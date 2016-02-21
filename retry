@@ -18,6 +18,13 @@
 # - returns 0 status; it sleeps before all but the first execution a
 # for a number of seconds obtained using an exponentially growing algorithm.
 # it hides stderr output for all but the last execution
+#
+# example: $ retry sh -c 'echo `date`; echo last try: `date` >&2; false' 
+#	Sun Feb 21 01:45:50 CST 2016
+#	Sun Feb 21 01:45:55 CST 2016
+#	Sun Feb 21 01:46:07 CST 2016
+#	last try: Sun Feb 21 01:46:07 CST 2016
+#	    0m16.08s real     0m00.01s user     0m00.06s system
 
 err()
 {
@@ -43,10 +50,10 @@ while [ "$i" -lt "$max" ]; do
 	sleep $sleep
 	if [ "x$i" = "x$((max - 1))" ]; then
 		"$@"; exit $?
-	elif [ "x$vflag" = x ]; then
-		"$@" 2>&1 && break
-	else
+	elif [ "x$vflag" = x1 ]; then
 		"$@" && break
+	else
+		"$@" 2>/dev/null && break
 	fi
 	i=$((i+1))
 done 
