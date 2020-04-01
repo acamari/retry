@@ -14,6 +14,13 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+
+err()
+{
+	echo "$0: " "$@" 2>&1
+	exit 1
+}
+
 # executes program arguments up to a $max times until a execution suceeds
 # - returns 0 status; it sleeps before all but the first execution a
 # for a number of seconds obtained using an exponentially growing algorithm.
@@ -24,14 +31,6 @@
 #	Sun Feb 21 01:46:07 CST 2016
 # 	1
 #	    0m16.08s real     0m00.01s user     0m00.06s system
-
-err()
-{
-	echo "$0: " "$@" 2>&1
-	exit 1
-}
-
-# easier to copy-paste into scripts
 retry()
 {
 	while getopts 'c:v' _opt; do
