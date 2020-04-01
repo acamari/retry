@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2015 Abel Abraham Camarillo Ojeda <acamari@verlet.org>
+# Copyright (c) 2020 Abel Abraham Camarillo Ojeda <acamari@verlet.org>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -17,13 +17,12 @@
 # executes program arguments up to a $max times until a execution suceeds
 # - returns 0 status; it sleeps before all but the first execution a
 # for a number of seconds obtained using an exponentially growing algorithm.
-# it hides stderr output for all but the last execution
 #
-# example: $ retry sh -c 'echo `date`; echo last try: `date` >&2; false' 
+# example: $ retry sh -c 'echo `date`; false'; echo $?
 #	Sun Feb 21 01:45:50 CST 2016
 #	Sun Feb 21 01:45:55 CST 2016
 #	Sun Feb 21 01:46:07 CST 2016
-#	last try: Sun Feb 21 01:46:07 CST 2016
+# 	1
 #	    0m16.08s real     0m00.01s user     0m00.06s system
 
 err()
@@ -32,28 +31,32 @@ err()
 	exit 1
 }
 
-while getopts 'c:v' _opt; do
-	case $_opt in
-		# count, max number of executions
-		c*) cflag="$OPTARG";;
-		# verbose: show errors on all executions
-		v*) vflag=1;;
-		*) err error in arguments;;
-	esac
-done
-shift $((OPTIND - 1))
+# easier to copy-paste into scripts
+retry()
+{
+	while getopts 'c:v' _opt; do
+		case $_opt in
+			# count, max number of executions
+			c*) cflag="$OPTARG";;
+			# was verbose: show errors on all executions, deprecated
+			# flag, supported as arg but does nothing
+			v*) :;;
+			*) err error in arguments;;
+		esac
+	done
+	shift $((OPTIND - 1))
 
-i=0
-max=${cflag:-3}
-while [ "$i" -lt "$max" ]; do
-	sleep=$((i ? (1 << i) + (RANDOM % (1 << i + 1)) : 0))
-	sleep $sleep
-	if [ "x$i" = "x$((max - 1))" ]; then
-		"$@"; exit $?
-	elif [ "x$vflag" = x1 ]; then
-		"$@" && break
-	else
-		"$@" 2>/dev/null && break
-	fi
-	i=$((i+1))
-done 
+	i=0
+	status=1
+	max=${cflag:-3}
+	while [ "$i" -lt "$max" ]; do
+		sleep=$((i ? (1 << i) + (RANDOM % (1 << i + 1)) : 0))
+		sleep $sleep
+		"$@" && return 0
+		status=$?
+		i=$((i+1))
+	done
+	return $status
+}
+
+retry "$@"
